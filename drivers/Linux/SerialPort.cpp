@@ -39,7 +39,7 @@ SerialPort::SerialPort(const char *port, bool isPty) : serialPort(std::string(po
 void SerialPort::begin(int bauds)
 {
 	if (!open(bauds)) {
-		mys_log(LOG_ERR, "Failed to open serial port.\n");
+		logError("Failed to open serial port.\n");
 		exit(1);
 	}
 }
@@ -52,29 +52,29 @@ bool SerialPort::open(int bauds)
 	if (isPty) {
 		sd = posix_openpt(O_RDWR | O_NOCTTY | O_NDELAY);
 		if (sd < 0) {
-			mys_log(LOG_ERR, "Couldn't open a PTY: %s\n", strerror(errno));
+			logError("Couldn't open a PTY: %s\n", strerror(errno));
 			return false;
 		}
 
 		if (grantpt(sd) != 0) {
-			mys_log(LOG_ERR, "Couldn't grant permission to the PTY: %s\n", strerror(errno));
+			logError("Couldn't grant permission to the PTY: %s\n", strerror(errno));
 			return false;
 		}
 
 		if (unlockpt(sd) != 0) {
-			mys_log(LOG_ERR, "Couldn't unlock the PTY: %s\n", strerror(errno));
+			logError("Couldn't unlock the PTY: %s\n", strerror(errno));
 			return false;
 		}
 
 		/* create a symlink with predictable name to the PTY device */
 		unlink(serialPort.c_str());	// remove the symlink if it already exists
 		if (symlink(ptsname(sd), serialPort.c_str()) != 0) {
-			mys_log(LOG_ERR, "Couldn't create a symlink '%s' to PTY! (%d) %s\n", serialPort.c_str(), errno, strerror(errno));
+			logError("Couldn't create a symlink '%s' to PTY! (%d) %s\n", serialPort.c_str(), errno, strerror(errno));
 			return false;
 		}
 	} else {
 		if ((sd = ::open(serialPort.c_str(), O_RDWR | O_NOCTTY | O_NDELAY)) == -1) {
-			mys_log(LOG_ERR, "Unable to open the serial port %s\n", serialPort.c_str());
+			logError("Unable to open the serial port %s\n", serialPort.c_str());
 			return false;
 		}
 
@@ -104,7 +104,7 @@ bool SerialPort::open(int bauds)
 
 	// Get the current options of the port
 	if (tcgetattr(sd, &options) < 0) {
-		mys_log(LOG_ERR, "Couldn't get term attributes: %s\n", strerror(errno));
+		logError("Couldn't get term attributes: %s\n", strerror(errno));
 		return false;
 	}
 
@@ -127,13 +127,13 @@ bool SerialPort::open(int bauds)
 
 	// Set parameters
 	if (tcsetattr(sd, TCSANOW, &options) < 0) {
-		mys_log(LOG_ERR, "Couldn't set term attributes: %s\n", strerror(errno));
+		logError("Couldn't set term attributes: %s\n", strerror(errno));
 		return false;
 	}
 
 	// flush
 	if (tcflush(sd, TCIOFLUSH) < 0) {
-		mys_log(LOG_ERR, "Couldn't flush serial: %s\n", strerror(errno));
+		logError("Couldn't flush serial: %s\n", strerror(errno));
 		return false;
 	}
 
@@ -152,7 +152,7 @@ bool SerialPort::setGroupPerm(const char *groupName)
 	if (sd != -1 && groupName != NULL) {
 		devGrp = getgrnam(groupName);
 		if (devGrp == NULL) {
-			mys_log(LOG_ERR, "getgrnam: %s failed. (%d) %s\n", groupName, errno, strerror(errno));
+			logError("getgrnam: %s failed. (%d) %s\n", groupName, errno, strerror(errno));
 			return false;
 		}
 
@@ -164,13 +164,13 @@ bool SerialPort::setGroupPerm(const char *groupName)
 
 		ret = chown(dev, -1, devGrp->gr_gid);
 		if (ret == -1) {
-			mys_log(LOG_ERR, "Could not change PTY owner! (%d) %s\n", errno, strerror(errno));
+			logError("Could not change PTY owner! (%d) %s\n", errno, strerror(errno));
 			return false;
 		}
 
 		ret = chmod(dev, ttyPermissions);
 		if (ret != 0) {
-			mys_log(LOG_ERR, "Could not change PTY permissions! (%d) %s\n", errno, strerror(errno));
+			logError("Could not change PTY permissions! (%d) %s\n", errno, strerror(errno));
 			return false;
 		}
 
@@ -184,7 +184,7 @@ int SerialPort::available()
 	int nbytes = 0;
 
 	if (ioctl(sd, FIONREAD, &nbytes) < 0) {
-		mys_log(LOG_ERR, "Failed to get byte count on serial.\n");
+		logError("Failed to get byte count on serial.\n");
 		exit(-1);
 	}
 	return nbytes;
@@ -194,32 +194,51 @@ int SerialPort::read()
 {
 	unsigned char c;
 
-	::read(sd, &c, 1);
-	return c;
+	int ret = ::read(sd, &c, 1);
+	if (ret < 0) {
+		logError("Serial - read failed: %s\n", strerror(errno));
+	} else if (ret == 1) {
+		return c;
+	}
+
+	return -1;
 }
 
 size_t SerialPort::write(uint8_t b)
 {
-	return ::write(sd, &b, 1);
+	int ret = ::write(sd, &b, 1);
+	if (ret < 0) {
+		logError("Serial - write failed: %s\n", strerror(errno));
+	}
+	return ret;
 }
 
 size_t SerialPort::write(const uint8_t *buffer, size_t size)
 {
-	return ::write(sd, buffer, size);
+	int ret = ::write(sd, buffer, size);
+	if (ret < 0) {
+		logError("Serial - write failed: %s\n", strerror(errno));
+	}
+	return ret;
 }
 
 int SerialPort::peek()
 {
 	FILE * f = fdopen(sd, "r+");
 	int c = getc(f);
-	if (c == EOF) return -1;
+	if (c == EOF) {
+		return -1;
+	}
 	ungetc(c, f);
 	return c;
 }
 
 void SerialPort::flush()
 {
-	tcflush(sd, TCIFLUSH);
+	// Waits until all output written to sd has been transmitted
+	if (tcdrain(sd) < 0) {
+		logError("Couldn't flush serial: %s\n", strerror(errno));
+	}
 }
 
 void SerialPort::end()

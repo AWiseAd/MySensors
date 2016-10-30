@@ -51,7 +51,7 @@ int EthernetClient::connect(const char* host, uint16_t port) {
 
 	sprintf(port_str, "%hu", port);
 	if ((rv = getaddrinfo(host, port_str, &hints, &servinfo)) != 0) {
-			mys_log(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(rv));
+			logError("getaddrinfo: %s\n", gai_strerror(rv));
 		return -1;
 	}
 
@@ -59,13 +59,13 @@ int EthernetClient::connect(const char* host, uint16_t port) {
 	for (p = servinfo; p != NULL; p = p->ai_next) {
 		if ((sockfd = socket(p->ai_family, p->ai_socktype,
 				p->ai_protocol)) == -1) {
-			mys_log(LOG_ERR, "socket: %s\n", strerror(errno));
+			logError("socket: %s\n", strerror(errno));
 			continue;
 		}
 
 		if (::connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
 			close(sockfd);
-			mys_log(LOG_ERR, "connect: %s\n", strerror(errno));
+			logError("connect: %s\n", strerror(errno));
 			continue;
 		}
 
@@ -73,7 +73,7 @@ int EthernetClient::connect(const char* host, uint16_t port) {
 	}
 
 	if (p == NULL) {
-		mys_log(LOG_ERR, "failed to connect\n");
+		logError("failed to connect\n");
 		return -1;
 	}
 
@@ -81,7 +81,7 @@ int EthernetClient::connect(const char* host, uint16_t port) {
 
 	void *addr = &(((struct sockaddr_in*)p->ai_addr)->sin_addr);
 	inet_ntop(p->ai_family, addr, s, sizeof s);
-	mys_log(LOG_DEBUG, "connected to %s\n", s);
+	logDebug("connected to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
 
@@ -107,7 +107,7 @@ size_t EthernetClient::write(const uint8_t *buf, size_t size) {
 	while (size > 0) {
 		rc = send(_sock, buf + bytes, size, MSG_NOSIGNAL | MSG_DONTWAIT);
 		if (rc == -1) {
-			mys_log(LOG_ERR, "send: %s\n", strerror(errno));
+			logError("send: %s\n", strerror(errno));
 			close(_sock);
 			_sock = -1;
 			break;
@@ -120,7 +120,9 @@ size_t EthernetClient::write(const uint8_t *buf, size_t size) {
 }
 
 size_t EthernetClient::write(const char *str) {
-	if (str == NULL) return 0;
+	if (str == NULL) {
+		return 0;
+	}
 	return write((const uint8_t *)str, strlen(str));
 }
 size_t EthernetClient::write(const char *buffer, size_t size) {
@@ -165,8 +167,9 @@ void EthernetClient::flush() {
 }
 
 void EthernetClient::stop() {
-	if (_sock == -1)
+	if (_sock == -1) {
 		return;
+	}
 
 	// attempt to close the connection gracefully (send a FIN to other side)
 	shutdown(_sock, SHUT_RDWR);
@@ -178,21 +181,24 @@ void EthernetClient::stop() {
 	uint8_t s;
 	do {
 		s = status();
-		if (s == ETHERNETCLIENT_W5100_CLOSED)
+		if (s == ETHERNETCLIENT_W5100_CLOSED) {
 			break; // exit the loop
+		}
 		usleep(1000);
 		gettimeofday(&curTime, NULL);
 	} while (((curTime.tv_sec - startTime.tv_sec) * 1000000) + (curTime.tv_usec - startTime.tv_usec) < 1000000);
 
 	// if it hasn't closed, close it forcefully
-	if (s != ETHERNETCLIENT_W5100_CLOSED)
+	if (s != ETHERNETCLIENT_W5100_CLOSED) {
 		close(_sock);
-
+	}
 	_sock = -1;
 }
 
 uint8_t EthernetClient::status() {
-	if (_sock == -1) return ETHERNETCLIENT_W5100_CLOSED;
+	if (_sock == -1) {
+		return ETHERNETCLIENT_W5100_CLOSED;
+	}
 
 	struct tcp_info tcp_info;
 	int tcp_info_length = sizeof(tcp_info);
@@ -227,8 +233,10 @@ uint8_t EthernetClient::status() {
 }
 
 uint8_t EthernetClient::connected() {
-	if (_sock == -1) return 0;
-	
+	if (_sock == -1) {
+		return 0;
+	}
+
 	if (peek() < 0) {
 		if (errno == EAGAIN) {
 			return 1;

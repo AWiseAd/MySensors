@@ -66,26 +66,15 @@
 	//#define F(x) (x)
 	#include "core/MyHwESP8266.cpp"
 #elif defined(ARDUINO_ARCH_AVR)
+	#include "drivers/AVR/DigitalWriteFast/digitalWriteFast.h"
 	#include "core/MyHwATMega328.cpp"
 #elif defined(ARDUINO_ARCH_SAMD)
         #include "core/MyHwSAMD.cpp"
 #elif defined(__linux__)
-	// Remove PSTR macros from debug prints
-	#undef PSTR
-	#define PSTR(x) (x)
-	//#undef F
-	//#define F(x) (x)
-	#define PROGMEM
-	#define vsnprintf_P(...) vsnprintf( __VA_ARGS__ )
-	#define snprintf_P(...) snprintf( __VA_ARGS__ )
-	#define memcpy_P memcpy
-	#define pgm_read_dword(x) (*x)
-	#define pgm_read_byte_near(x) (*x)
-	#include "core/MyHwLinuxGeneric.cpp"
-	// Ugly hack
 	#ifdef LINUX_ARCH_RASPBERRYPI
-		#undef hwDigitalWrite
-		#define hwDigitalWrite(__pin, __value) (digitalWrite(__pin, __value))
+		#include "core/MyHwRPi.cpp"
+	#else
+		#include "core/MyHwLinuxGeneric.cpp"
 	#endif
 #endif
 
@@ -141,6 +130,9 @@
 	// SIGNING COMMON FUNCTIONS
 	#if defined(MY_SIGNING_ATSHA204) && defined(MY_SIGNING_SOFT)
 		#error Only one signing engine can be activated
+	#endif
+	#if defined(MY_SIGNING_ATSHA204) && defined(__linux__)
+		#error No support for ATSHA204 on this platform
 	#endif
 
 	#if defined(MY_SIGNING_ATSHA204)
@@ -295,7 +287,12 @@
 		#include "drivers/RF24/RF24.cpp"
 		#include "core/MyTransportNRF24.cpp"
 	#elif defined(MY_RS485)
-		#include "drivers/AltSoftSerial/AltSoftSerial.cpp"
+		#if !defined(MY_RS485_HWSERIAL)
+			#if defined(__linux__)
+				#error You must specify MY_RS485_HWSERIAL for RS485 transport
+			#endif
+			#include "drivers/AltSoftSerial/AltSoftSerial.cpp"
+		#endif
 		#include "core/MyTransportRS485.cpp"
 	#elif defined(MY_RADIO_RFM69)
 		#include "drivers/RFM69/RFM69.cpp"

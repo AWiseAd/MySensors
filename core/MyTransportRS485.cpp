@@ -61,10 +61,13 @@
 
 #include "MyTransport.h"
 
+#ifdef __linux__
+    #include "SerialPort.h"
+#endif
 
 #if defined(MY_RS485_DE_PIN)
-	#define assertDE() digitalWrite(MY_RS485_DE_PIN, HIGH); delayMicroseconds(5)
-	#define deassertDE() digitalWrite(MY_RS485_DE_PIN, LOW)
+	#define assertDE() hwDigitalWrite(MY_RS485_DE_PIN, HIGH); delayMicroseconds(5)
+	#define deassertDE() hwDigitalWrite(MY_RS485_DE_PIN, LOW)
 
 #else
 	#define assertDE()
@@ -87,8 +90,14 @@ unsigned char _recSender;
 unsigned char _recCS;
 unsigned char _recCalcCS;
 
-AltSoftSerial _dev;
 
+#if defined(__linux__)
+SerialPort _dev = SerialPort(MY_RS485_HWSERIAL);
+#elif defined(MY_RS485_HWSERIAL)
+HardwareSerial& _dev = MY_RS485_HWSERIAL;
+#else
+AltSoftSerial _dev;
+#endif
 
 unsigned char _nodeId;
 char _data[MY_RS485_MAX_MESSAGE_LENGTH];
@@ -125,7 +134,9 @@ bool _serialProcess()
 {
     char inch;
     unsigned char i;
-    if (!_dev.available()) return false;
+    if (!_dev.available()) {
+			return false;
+		}
 
     while(_dev.available()) {
         inch = _dev.read();
@@ -158,10 +169,6 @@ bool _serialProcess()
                     if ((_recSender == _nodeId) ||
                         (_recStation != _nodeId &&
                          _recStation != BROADCAST_ADDRESS)) {
-						_dev.print(" wrongid: ");
-						_dev.print(_recStation);
-						_dev.print(" - ");
-						_dev.println(_nodeId);
                         _serialReset();
                         break;
                     }
@@ -258,12 +265,14 @@ bool transportSend(uint8_t to, const void* data, uint8_t len)
 	}
 
 	#if defined(MY_RS485_DE_PIN)
-		digitalWrite(MY_RS485_DE_PIN, HIGH);
+		hwDigitalWrite(MY_RS485_DE_PIN, HIGH);
 		delayMicroseconds(5);
 	#endif
 
 		// Start of header by writing multiple SOH
-    for(byte w=0;w<1;w++)  _dev.write(SOH);
+    for(byte w=0;w<1;w++) {
+			_dev.write(SOH);
+		}
     _dev.write(to);  // Destination address
     cs += to;
     _dev.write(_nodeId); // Source address
@@ -298,9 +307,11 @@ bool transportSend(uint8_t to, const void* data, uint8_t len)
 				_dev.flush();
 				delayMicroseconds((20000000UL/9600)+1);
 			#endif
-			#endif
+		#elif defined(__linux__)
+			_dev.flush();
 		#endif
-		digitalWrite(MY_RS485_DE_PIN, LOW);
+		#endif
+		hwDigitalWrite(MY_RS485_DE_PIN, LOW);
 	#endif
     return true;
 }
@@ -312,8 +323,8 @@ bool transportInit() {
 	_dev.begin(MY_RS485_BAUD_RATE);
     _serialReset();
 	#if defined(MY_RS485_DE_PIN)
-    	pinMode(MY_RS485_DE_PIN, OUTPUT);
-        digitalWrite(MY_RS485_DE_PIN, LOW);
+    	hwPinMode(MY_RS485_DE_PIN, OUTPUT);
+        hwDigitalWrite(MY_RS485_DE_PIN, LOW);
 	#endif
     return true;
 }
@@ -351,5 +362,3 @@ uint8_t transportReceive(void* data) {
 void transportPowerDown() {
 	// Nothing to shut down here
 }
-
-

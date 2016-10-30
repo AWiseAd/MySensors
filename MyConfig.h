@@ -366,6 +366,15 @@
 //#define MY_SIGNING_REQUEST_SIGNATURES
 
 /**
+ * @def MY_SIGNING_GW_REQUEST_SIGNATURES_FROM_ALL
+ * @brief Enable this to have gateway require all nodes in the network to sign messages sent to it. @ref MY_SIGNING_REQUEST_SIGNATURES must also be set.
+ *
+ * Use this for maximum security, but be aware that every single node will have to be personalized before they can be used.
+ * Note that if this is enabled, and whitelisting is also enabled, whitelisting will also be in effect for all nodes.
+ */
+//#define MY_SIGNING_GW_REQUEST_SIGNATURES_FROM_ALL
+
+/**
  * @def MY_VERIFICATION_TIMEOUT_MS
  * @brief Define a suitable timeout for a signature verification session
  *
@@ -430,6 +439,18 @@
 #ifndef MY_RS485_MAX_MESSAGE_LENGTH
 #define MY_RS485_MAX_MESSAGE_LENGTH 40
 #endif
+
+/**
+ * @def MY_RS485_DE_PIN
+ * @brief RS485 driver enable pin.
+ */
+//#define MY_RS485_DE_PIN 2
+
+/**
+ * @def MY_RS485_HWSERIAL
+ * @brief Enable this if RS485 is connected to a hardware serial port.
+ */
+//#define MY_RS485_HWSERIAL Serial1
 
 /**********************************
 *  NRF24L01P Driver Defaults
@@ -828,7 +849,9 @@
 #define MY_SIGNING_ATSHA204
 #define MY_SIGNING_SOFT
 #define MY_SIGNING_REQUEST_SIGNATURES
+#define MY_SIGNING_GW_REQUEST_SIGNATURES_FROM_ALL
 #define MY_SIGNING_NODE_WHITELISTING {{.nodeId = GATEWAY_ADDRESS,.serial = {0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01}}}
+#define MY_RS485_HWSERIAL
 #define MY_IS_RFM69HW
 #define MY_PARENT_NODE_IS_STATIC
 #define MY_REGISTRATION_CONTROLLER

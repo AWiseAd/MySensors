@@ -6,7 +6,7 @@
  * network topology allowing messages to be routed to nodes.
  *
  * Created by Tomas Hozza <thozza@gmail.com>
- * Copyright (C) 2015  Tomas Hozza 
+ * Copyright (C) 2015  Tomas Hozza
  * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
  *
  * Documentation: http://www.mysensors.org
@@ -87,14 +87,14 @@ typedef struct
 		if (enable)
 		{
 			// Pull up pin
-			pinMode(MY_W5100_SPI_EN, INPUT);
-			digitalWrite(MY_W5100_SPI_EN, HIGH);
+			hwPinMode(MY_W5100_SPI_EN, INPUT);
+			hwDigitalWrite(MY_W5100_SPI_EN, HIGH);
 		}
 		else
 		{
 			// Ground pin
-			pinMode(MY_W5100_SPI_EN, OUTPUT);
-			digitalWrite(MY_W5100_SPI_EN, LOW);
+			hwPinMode(MY_W5100_SPI_EN, OUTPUT);
+			hwDigitalWrite(MY_W5100_SPI_EN, LOW);
 		}
 	}
 #else
@@ -135,7 +135,7 @@ bool gatewayTransportInit() {
 				_w5100_spi_en(false);
 				return false;
 			}
-		#endif 
+		#endif
 		MY_SERIALDEVICE.print(F("IP: "));
 		MY_SERIALDEVICE.println(Ethernet.localIP());
 		// give the Ethernet interface a second to initialize
@@ -437,8 +437,9 @@ void gatewayTransportRenewIP()
 	unsigned long now = hwMillis();
 
 	// http://playground.arduino.cc/Code/TimingRollover
-	if ((long)(now - next_time) < 0)
+	if ((long)(now - next_time) < 0) {
 		return;
+	}
 	if (Ethernet.maintain() & ~(0x06)) {
 		debug(PSTR("IP was not renewed correctly\n"));
 		/* Error occured -> IP was not renewed */
