@@ -5,8 +5,8 @@
  * repeater and gateway builds a routing tables in EEPROM which keeps track of the
  * network topology allowing messages to be routed to nodes.
  *
- * Created by Marcelo Aquino <marceloaqno@gmail.org>
- * Copyright (C) 2016 Marcelo Aquino
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2016 Sensnology AB
  * Full contributor list: https://github.com/mysensors/MySensors/graphs/contributors
  *
  * Documentation: http://www.mysensors.org
@@ -28,14 +28,14 @@ static SoftEeprom eeprom = SoftEeprom(MY_LINUX_CONFIG_FILE, 1024);	// ATMega328 
 
 void hwInit()
 {
-#ifdef MY_GATEWAY_SERIAL
 	MY_SERIALDEVICE.begin(MY_BAUD_RATE);
-	#ifdef MY_LINUX_SERIAL_GROUPNAME
-		if (!MY_SERIALDEVICE.setGroupPerm(MY_LINUX_SERIAL_GROUPNAME)) {
-			logError("Unable to change permission for serial port device.\n");
-			exit(1);
-		}
-	#endif
+#ifdef MY_GATEWAY_SERIAL
+#ifdef MY_LINUX_SERIAL_GROUPNAME
+	if (!MY_SERIALDEVICE.setGroupPerm(MY_LINUX_SERIAL_GROUPNAME)) {
+		logError("Unable to change permission for serial port device.\n");
+		exit(1);
+	}
+#endif
 #endif
 }
 
@@ -88,14 +88,15 @@ int8_t hwSleep(uint8_t interrupt, uint8_t mode, unsigned long ms)
 }
 
 // Not supported!
-int8_t hwSleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, uint8_t mode2, unsigned long ms)
+int8_t hwSleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, uint8_t mode2,
+               unsigned long ms)
 {
 	(void)interrupt1;
 	(void)mode1;
 	(void)interrupt2;
 	(void)mode2;
 	(void)ms;
-	
+
 	return MY_SLEEP_NOT_POSSIBLE;
 }
 
@@ -105,19 +106,34 @@ uint16_t hwCPUVoltage()
 	// TODO: Not supported!
 	return 0;
 }
- 
+
 uint16_t hwCPUFrequency()
 {
 	// TODO: Not supported!
 	return 0;
 }
- 
+
 uint16_t hwFreeMem()
 {
 	// TODO: Not supported!
 	return 0;
 }
 #endif
+
+void hwDigitalWrite(uint8_t pin, uint8_t value)
+{
+	digitalWrite(pin, value);
+}
+
+int hwDigitalRead(uint8_t pin)
+{
+	return digitalRead(pin);
+}
+
+void hwPinMode(uint8_t pin, uint8_t mode)
+{
+	pinMode(pin, mode);
+}
 
 #ifdef MY_DEBUG
 void hwDebugPrint(const char *fmt, ...)

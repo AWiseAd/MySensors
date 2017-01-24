@@ -25,32 +25,29 @@
 #include <Arduino.h>
 #endif
 
+#ifndef MY_SERIALDEVICE
 #define MY_SERIALDEVICE Serial
+#endif
 
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)>(b)?(a):(b))
 
+#define EEPROM_size (1024)
 
 // Define these as macros to save valuable space
 #define hwDigitalWrite(__pin, __value) digitalWrite(__pin, __value)
 #define hwDigitalRead(__pin) digitalRead(__pin)
 #define hwPinMode(__pin, __value) pinMode(__pin, __value)
-
-#if defined(MY_DISABLED_SERIAL)
-	#define hwInit()
-#else
-	#define hwInit() MY_SERIALDEVICE.begin(MY_BAUD_RATE, SERIAL_8N1, MY_ESP8266_SERIAL_MODE, 1); MY_SERIALDEVICE.setDebugOutput(true)
-#endif
-
 #define hwWatchdogReset() wdt_reset()
 #define hwReboot() ESP.restart()
 #define hwMillis() millis()
-#define hwRandomNumberInit() randomSeed(analogRead(MY_SIGNING_SOFT_RANDOMSEED_PIN))
+#define hwRandomNumberInit() randomSeed(RANDOM_REG32)
 
+void hwInit(void);
 void hwReadConfigBlock(void* buf, void* adr, size_t length);
 void hwWriteConfigBlock(void* buf, void* adr, size_t length);
-void hwWriteConfig(int adr, uint8_t value);
-uint8_t hwReadConfig(int adr);
+void hwWriteConfig(const int addr, uint8_t value);
+uint8_t hwReadConfig(const int addr);
 
 /**
  * Restore interrupt state.
@@ -58,11 +55,11 @@ uint8_t hwReadConfig(int adr);
  */
 static __inline__ void __psRestore(const uint32_t *__s)
 {
-    xt_wsr_ps( *__s );
+	xt_wsr_ps( *__s );
 }
-   
+
 #ifndef DOXYGEN
-	#define MY_CRITICAL_SECTION    for ( uint32_t __psSaved __attribute__((__cleanup__(__psRestore))) = xt_rsil(15), __ToDo = 1; __ToDo ; __ToDo = 0 )
+#define MY_CRITICAL_SECTION    for ( uint32_t __psSaved __attribute__((__cleanup__(__psRestore))) = xt_rsil(15), __ToDo = 1; __ToDo ; __ToDo = 0 )
 #endif  /* DOXYGEN */
 
 #endif // #ifdef ARDUINO_ARCH_ESP8266

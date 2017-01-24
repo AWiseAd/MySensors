@@ -51,7 +51,9 @@ void hwWriteConfigBlock(void* buf, void* adr, size_t length);
 void hwWriteConfig(int adr, uint8_t value);
 uint8_t hwReadConfig(int adr);
 
+#ifndef MY_SERIALDEVICE
 #define MY_SERIALDEVICE SerialUSB
+#endif
 
 /**
  * Disable all interrupts.
@@ -59,21 +61,21 @@ uint8_t hwReadConfig(int adr);
  */
 static __inline__ uint8_t __disableIntsRetVal(void)
 {
-    __disable_irq();
-    return 1;
+	__disable_irq();
+	return 1;
 }
-   
-/** 
+
+/**
  * Restore priority mask register.
  * Helper function for MY_CRITICAL_SECTION.
  */
 static __inline__ void __priMaskRestore(const uint32_t *priMask)
 {
-    __set_PRIMASK(*priMask);
+	__set_PRIMASK(*priMask);
 }
 
 #ifndef DOXYGEN
-	#define MY_CRITICAL_SECTION    for ( uint32_t __savePriMask __attribute__((__cleanup__(__priMaskRestore))) = __get_PRIMASK(), __ToDo = __disableIntsRetVal(); __ToDo ; __ToDo = 0 )
+#define MY_CRITICAL_SECTION    for ( uint32_t __savePriMask __attribute__((__cleanup__(__priMaskRestore))) = __get_PRIMASK(), __ToDo = __disableIntsRetVal(); __ToDo ; __ToDo = 0 )
 #endif  /* DOXYGEN */
 
 #endif // #ifdef ARDUINO_ARCH_SAMD
