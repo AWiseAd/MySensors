@@ -10,8 +10,13 @@
 *.xml text
 *.lua text
 
-
 # Denote all files that are truly binary and should not be modified.
 *.png binary
 *.jpg binary
 *.gif binary
+*.ttf binary
+*.eot binary
+*.svg binary
+*.woff binary
+*.epg binary
+*.jar binary

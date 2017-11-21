@@ -8,3 +8,5 @@ Makefile.inc
 build
 bin
 *.sublime-workspace
+.idea
+doxygen.log
